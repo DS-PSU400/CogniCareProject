@@ -201,7 +201,7 @@ def load_data():
 # SIDEBAR
 # ──────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🧠 CogniTrack")
+    st.markdown("## 🧠 CogniCare")
     st.markdown("---")
     st.markdown('<div class="sidebar-label">Filter Data</div>', unsafe_allow_html=True)
 
