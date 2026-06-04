@@ -8,3 +8,6 @@ CogniCare adalah proyek analisis data yang bertujuan untuk menganalisis hubungan
 streamlit run dashboard.py
 Atau akses dashboard online di:
 https://cognicareproject-fymddj6werbhq5ery6nwli.streamlit.app/
+
+## Laporan Teknis Komprehensif
+Akses melalui link berikut: https://docs.google.com/document/d/1BHt6zltUP1N_HVoJhxVyhzPMmAI_RhT2vd4QaMl9qqs/edit?usp=sharing  
