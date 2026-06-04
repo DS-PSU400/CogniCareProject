@@ -152,7 +152,7 @@ TEXT_COL  = "#495057"
 FONT_FAM  = "DM Sans"
 PALETTE   = {"refreshed": "#2E7D32", "strained": "#F57F17", "near-burnout": "#C62828"}
 
-def apply_dark_theme(fig, height=380):
+def apply_chart_theme(fig, height=380):
     fig.update_layout(
         plot_bgcolor=PLOT_BG,
         paper_bgcolor=PAPER_BG,
@@ -321,11 +321,11 @@ if page == "📊 Overview":
             textposition="outside",
             hovertemplate="<b>%{label}</b><br>Jumlah: %{value:,}<br>Persen: %{customdata[0]:.1f}%<extra></extra>",
         )
-        apply_light_theme(fig_pie, height=340)
+        apply_chart_theme(fig_pie, height=340)
         fig_pie.add_annotation(
             text=f"<b>{len(df):,}</b><br>Responden",
             x=0.5, y=0.5, font_size=14,
-            font_color="#e8eaf0", showarrow=False,
+            font_color="#1A1A2E", showarrow=False,
         )
         st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -339,12 +339,12 @@ if page == "📊 Overview":
                 x="count", y="mood",
                 orientation="h",
                 color="count",
-                color_continuous_scale=["#1e2a40", "#7ee8fa"],
+                color_continuous_scale=["#1565C0", "#00ACC1"],
                 text="count",
             )
             fig_mood.update_traces(texttemplate="%{text:,}", textposition="outside")
             fig_mood.update_layout(coloraxis_showscale=False, yaxis_title="", xaxis_title="Jumlah")
-            apply_light_theme(fig_mood, height=340)
+            apply_chart_theme(fig_mood, height=340)
             st.plotly_chart(fig_mood, use_container_width=True)
         else:
             st.info("Kolom 'mood' tidak tersedia.")
@@ -358,7 +358,7 @@ if page == "📊 Overview":
         points="outliers",
         category_orders={"fatigue_level": ["refreshed", "strained", "near-burnout"]},
     )
-    apply_light_theme(fig_box, height=340)
+    apply_chart_theme(fig_box, height=340)
     st.plotly_chart(fig_box, use_container_width=True)
 
     st.markdown("""
@@ -393,11 +393,10 @@ elif page == "🔍 EDA & Distribusi":
             category_orders={"fatigue_level": ["refreshed", "strained", "near-burnout"]},
         )
         fig_hist.update_layout(title=f"Distribusi {selected_num} per Fatigue Level")
-        apply_light_theme(fig_hist, 380)
+        apply_chart_theme(fig_hist, 380)
         st.plotly_chart(fig_hist, use_container_width=True)
 
     with col2:
-        # Violin
         fig_vio = px.violin(
             df, y=selected_num, x="fatigue_level",
             color="fatigue_level",
@@ -406,7 +405,7 @@ elif page == "🔍 EDA & Distribusi":
             category_orders={"fatigue_level": ["refreshed", "strained", "near-burnout"]},
         )
         fig_vio.update_layout(title=f"Violin Plot: {selected_num}")
-        apply_light_theme(fig_vio, 380)
+        apply_chart_theme(fig_vio, 380)
         st.plotly_chart(fig_vio, use_container_width=True)
 
     # Statistik Deskriptif
@@ -445,7 +444,7 @@ elif page == "🔍 EDA & Distribusi":
             category_orders={"fatigue_level": ["refreshed","strained","near-burnout"]},
         )
         fig_bin.update_layout(xaxis_title="Screen Time (jam/hari)", yaxis_title="Jumlah Responden")
-        apply_light_theme(fig_bin, 360)
+        apply_chart_theme(fig_bin, 360)
         st.plotly_chart(fig_bin, use_container_width=True)
 
         st.markdown("""
@@ -479,7 +478,7 @@ elif page == "🤝 Korelasi & RQ":
         textfont=dict(size=11),
         hovertemplate="<b>%{x}</b> × <b>%{y}</b><br>r = %{z:.3f}<extra></extra>",
     ))
-    apply_light_theme(fig_heat, 420)
+    apply_chart_theme(fig_heat, 420)
     st.plotly_chart(fig_heat, use_container_width=True)
 
     # ── RQ 1 – Scatter screen_time vs fatigue_score
@@ -494,10 +493,10 @@ elif page == "🤝 Korelasi & RQ":
                 opacity=0.5,
                 trendline="ols",
                 trendline_scope="overall",
-                trendline_color_override="#ffffff",
+                trendline_color_override="#1565C0",
                 category_orders={"fatigue_level": ["refreshed","strained","near-burnout"]},
             )
-            apply_light_theme(fig_sc, 380)
+            apply_chart_theme(fig_sc, 380)
             st.plotly_chart(fig_sc, use_container_width=True)
     with col2:
         st.markdown("""
@@ -522,9 +521,9 @@ elif page == "🤝 Korelasi & RQ":
             markers=True,
             line_shape="spline",
         )
-        fig_sleep.update_traces(line_color="#7ee8fa", marker_color="#80ff72", marker_size=10)
+        fig_sleep.update_traces(line_color="#1565C0", marker_color="#00ACC1", marker_size=10)
         fig_sleep.update_layout(xaxis_title="Durasi Tidur (jam)", yaxis_title="Rata-rata Wellness Index")
-        apply_light_theme(fig_sleep, 340)
+        apply_chart_theme(fig_sleep, 340)
         st.plotly_chart(fig_sleep, use_container_width=True)
         st.markdown("""
         <div class="insight-box">
@@ -544,13 +543,13 @@ elif page == "🤝 Korelasi & RQ":
             opacity=0.45,
             trendline="ols",
             trendline_scope="overall",
-            trendline_color_override="#ffffff",
+            trendline_color_override="#1565C0",
         )
-        apply_light_theme(fig_str, 360)
+        apply_chart_theme(fig_str, 360)
         st.plotly_chart(fig_str, use_container_width=True)
 
     with col4:
-        # ── RQ 4 – Mood Comparison (Exhausted vs Relaxed)
+        # ── RQ 4 – Mood Comparison
         if "mood" in df.columns:
             profile_cols = [c for c in ["screen_time","sleep_hours","physical_activity"] if c in df.columns]
             profile = df.groupby("mood")[profile_cols].mean().reset_index()
@@ -561,7 +560,7 @@ elif page == "🤝 Korelasi & RQ":
             )
             fig_prof.update_layout(title="Profil Kebiasaan per Mood",
                                    xaxis_title="", yaxis_title="Rata-rata Nilai")
-            apply_light_theme(fig_prof, 360)
+            apply_chart_theme(fig_prof, 360)
             st.plotly_chart(fig_prof, use_container_width=True)
 
     # ── RQ 5 – Physical Activity Mitigasi Screen Time
@@ -584,7 +583,7 @@ elif page == "🤝 Korelasi & RQ":
             markers=True, line_shape="spline",
         )
         fig_rq5.update_layout(xaxis_title="Screen Time (jam)", yaxis_title="Rata-rata Wellness Index")
-        apply_light_theme(fig_rq5, 360)
+        apply_chart_theme(fig_rq5, 360)
         st.plotly_chart(fig_rq5, use_container_width=True)
         st.markdown("""
         <div class="insight-box">
@@ -611,7 +610,7 @@ elif page == "🤝 Korelasi & RQ":
         ))
         fig_rq6.update_layout(xaxis_title="Koefisien Korelasi Pearson",
                                xaxis=dict(range=[-1,1], gridcolor=GRID_COL))
-        apply_light_theme(fig_rq6, 340)
+        apply_chart_theme(fig_rq6, 340)
         st.plotly_chart(fig_rq6, use_container_width=True)
 
 
@@ -622,7 +621,7 @@ elif page == "🧪 A/B Testing":
     from scipy import stats
 
     st.markdown("""
-    <div class="insight-box" style="border-left-color:#7ee8fa; margin-bottom:1.5rem">
+    <div class="insight-box" style="border-left-color:#1565C0; margin-bottom:1.5rem">
     🔬 <b>Skenario A/B Testing:</b> Apakah terdapat perbedaan signifikan pada <i>Wellness Index</i>
     antara pengguna dengan screen time <b>rendah (≤ 6 jam)</b> vs screen time <b>tinggi (> 6 jam)</b>?
     </div>
@@ -680,18 +679,18 @@ elif page == "🧪 A/B Testing":
     fig_ab = go.Figure()
     fig_ab.add_trace(go.Histogram(
         x=group_a, name=f"Group A (≤{threshold}h)", opacity=0.7,
-        marker_color="#7ee8fa", nbinsx=40,
+        marker_color="#1565C0", nbinsx=40,
     ))
     fig_ab.add_trace(go.Histogram(
         x=group_b, name=f"Group B (>{threshold}h)", opacity=0.7,
         marker_color="#f87171", nbinsx=40,
     ))
-    fig_ab.add_vline(x=group_a.mean(), line_dash="dash", line_color="#7ee8fa",
+    fig_ab.add_vline(x=group_a.mean(), line_dash="dash", line_color="#1565C0",
                      annotation_text=f"Mean A={group_a.mean():.2f}", annotation_position="top right")
     fig_ab.add_vline(x=group_b.mean(), line_dash="dash", line_color="#f87171",
                      annotation_text=f"Mean B={group_b.mean():.2f}", annotation_position="top left")
     fig_ab.update_layout(barmode="overlay", xaxis_title=metric_col, yaxis_title="Frekuensi")
-    apply_dark_theme(fig_ab, 380)
+    apply_chart_theme(fig_ab, 380)
     st.plotly_chart(fig_ab, use_container_width=True)
 
     # Ringkasan statistik
