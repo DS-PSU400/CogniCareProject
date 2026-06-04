@@ -796,7 +796,7 @@ elif page == "📋 Data Dictionary":
 st.markdown("---")
 st.markdown(
     '<div style="text-align:center; color:#3a4060; font-size:0.78rem; font-family:Space Mono,monospace;">'
-    'CogniTrack Dashboard · Cognitive Fatigue & Digital Habits · Built with Streamlit'
+    'CogniCare Dashboard · Cognitive Fatigue & Digital Habits · Built with Streamlit'
     '</div>',
     unsafe_allow_html=True
 )
