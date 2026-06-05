@@ -613,9 +613,339 @@ elif page == "🤝 Korelasi & RQ":
         apply_chart_theme(fig_rq6, 340)
         st.plotly_chart(fig_rq6, use_container_width=True)
 
+# ═══════════════════════════════════════════════
+# PAGE 4: SHAP ANALYSIS  ← HALAMAN BARU
+# ═══════════════════════════════════════════════
+elif page == "🧠 SHAP Analysis":
+    import matplotlib.pyplot as plt
+    import matplotlib
+    matplotlib.use("Agg")
+
+    st.markdown("""
+    <div class="shap-insight-box">
+    🔬 <b>Tentang SHAP Analysis:</b> Halaman ini menampilkan interpretasi model Random Forest
+    menggunakan SHAP (SHapley Additive exPlanations). SHAP menghitung kontribusi marginal
+    setiap fitur terhadap prediksi secara individual — menjawab langsung
+    <b>Rumusan Masalah 2</b>: faktor aktivitas harian mana yang paling dominan
+    mempengaruhi tingkat kelelahan kognitif.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Load model + SHAP (cached) ──────────────────────────────────────────
+    with st.spinner("Melatih model dan menghitung SHAP values... (hanya sekali per sesi)"):
+        try:
+            shap_data = load_shap_model(df_raw)
+            shap_ok   = True
+        except Exception as e:
+            st.error(f"Gagal menghitung SHAP: {e}")
+            shap_ok = False
+
+    if not shap_ok:
+        st.stop()
+
+    import shap
+    shap_values   = shap_data["shap_values"]
+    X_shap        = shap_data["X_shap"]
+    class_names   = shap_data["class_names"]
+    feature_names = shap_data["feature_names"]
+    explainer     = shap_data["explainer"]
+    rf_model      = shap_data["model"]
+    y_test        = shap_data["y_test"]
+    X_test        = shap_data["X_test"]
+
+    st.success(f"SHAP berhasil dihitung pada {X_shap.shape[0]} sampel | "
+               f"{len(feature_names)} fitur | {len(class_names)} kelas")
+
+    # ── Tab navigasi dalam halaman SHAP ─────────────────────────────────────
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📊 Feature Importance",
+        "🐝 Beeswarm Plot",
+        "⚡ Force Plot",
+        "📉 Confusion Matrix",
+        "🏆 Perbandingan Model",
+    ])
+
+    # ────────────────────────────────────────────
+    # TAB 1: SHAP BAR PLOT (Feature Importance Global)
+    # ────────────────────────────────────────────
+    with tab1:
+        st.markdown('<div class="section-header">SHAP Feature Importance Global per Kelas</div>',
+                    unsafe_allow_html=True)
+
+        colors_kelas = ["#27AE60", "#E67E22", "#E74C3C"]
+        fig_bar, axes = plt.subplots(1, 3, figsize=(16, 5))
+
+        for i, (cls, color) in enumerate(zip(class_names, colors_kelas)):
+            mean_abs = pd.Series(
+                np.abs(shap_values[i]).mean(axis=0),
+                index=feature_names
+            ).sort_values(ascending=True)
+
+            bars = axes[i].barh(mean_abs.index, mean_abs.values,
+                                color=color, edgecolor="white", linewidth=0.5)
+            for bar, val in zip(bars, mean_abs.values):
+                axes[i].text(val + 0.0005, bar.get_y() + bar.get_height()/2,
+                             f"{val:.3f}", va="center", ha="left", fontsize=8)
+            axes[i].set_title(f"Kelas: {cls.upper()}", fontsize=10,
+                              fontweight="bold", color=color)
+            axes[i].set_xlabel("Mean |SHAP Value|", fontsize=8)
+            axes[i].spines[["top","right"]].set_visible(False)
+
+        fig_bar.suptitle("SHAP Global Feature Importance per Kelas Fatigue Level",
+                         fontsize=12, fontweight="bold")
+        plt.tight_layout()
+        st.pyplot(fig_bar, use_container_width=True)
+        plt.close()
+
+        # Ranking tabel
+        st.markdown('<div class="section-header">Ranking Feature Importance (Global)</div>',
+                    unsafe_allow_html=True)
+        mean_abs_all = np.mean([np.abs(shap_values[i]) for i in range(len(class_names))], axis=0)
+        df_rank = (pd.DataFrame(mean_abs_all, columns=feature_names)
+                     .mean()
+                     .sort_values(ascending=False)
+                     .reset_index())
+        df_rank.columns = ["Fitur", "Mean |SHAP Value|"]
+        df_rank.index  += 1
+        df_rank["Tier"] = df_rank.index.map(lambda x: "🔴 Tinggi" if x<=3 else "🟡 Sedang" if x<=6 else "🟢 Rendah")
+        df_rank["Mean |SHAP Value|"] = df_rank["Mean |SHAP Value|"].round(4)
+        st.dataframe(df_rank, use_container_width=True)
+
+        st.markdown("""
+        <div class="shap-insight-box">
+        🔬 <b>Insight:</b> <code>screen_time</code> adalah fitur paling dominan dengan mean |SHAP value|
+        tertinggi, terutama pada kelas Near-Burnout. Ini membuktikan bahwa durasi layar harian adalah
+        prediktor utama kelelahan kognitif — konsisten dengan temuan korelasi Pearson (r = +0.68) pada RQ1.
+        Fitur <code>screen_time_category</code> di posisi kedua memvalidasi bahwa keputusan
+        <i>feature engineering</i> bins screen_time memberikan nilai prediktif tambahan yang signifikan.
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ────────────────────────────────────────────
+    # TAB 2: BEESWARM PLOT
+    # ────────────────────────────────────────────
+    with tab2:
+        cls_options = {f"Kelas: {c.upper()}": i for i, c in enumerate(class_names)}
+        selected_cls_label = st.selectbox("Pilih kelas untuk Beeswarm Plot:", list(cls_options.keys()))
+        selected_cls_idx   = cls_options[selected_cls_label]
+
+        st.markdown(f'<div class="section-header">Beeswarm Plot — {selected_cls_label}</div>',
+                    unsafe_allow_html=True)
+
+        fig_bee, ax_bee = plt.subplots(figsize=(10, 6))
+        plt.sca(ax_bee)
+        shap.summary_plot(
+            shap_values[selected_cls_idx],
+            X_shap,
+            feature_names=feature_names,
+            show=False,
+            plot_size=None,
+            max_display=len(feature_names),
+            plot_type="dot"
+        )
+        ax_bee.set_title(f"SHAP Beeswarm Plot — {selected_cls_label}", fontsize=11, fontweight="bold")
+        ax_bee.set_xlabel("SHAP Value (dampak terhadap output model)", fontsize=9)
+        plt.tight_layout()
+        st.pyplot(fig_bee, use_container_width=True)
+        plt.close()
+
+        st.markdown("""
+        <div class="shap-insight-box">
+        🐝 <b>Cara membaca Beeswarm Plot:</b><br>
+        • <b>Titik merah</b> = nilai fitur tinggi pada sampel tersebut<br>
+        • <b>Titik biru</b> = nilai fitur rendah pada sampel tersebut<br>
+        • <b>Posisi kanan (SHAP > 0)</b> = mendorong prediksi ke arah kelas ini<br>
+        • <b>Posisi kiri (SHAP < 0)</b> = menjauhkan prediksi dari kelas ini<br><br>
+        Pada kelas <b>Near-Burnout</b>: screen_time tinggi (merah) di kanan membuktikan model
+        belajar hubungan yang <i>domain-consistent</i> — bukan sekadar artefak statistik.
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ────────────────────────────────────────────
+    # TAB 3: FORCE PLOT (Prediksi Individual)
+    # ────────────────────────────────────────────
+    with tab3:
+        st.markdown('<div class="section-header">Interpretasi Prediksi Individual</div>',
+                    unsafe_allow_html=True)
+
+        col_fp1, col_fp2 = st.columns(2)
+        with col_fp1:
+            sample_idx = st.number_input("Index sampel (0 hingga {}):".format(X_shap.shape[0]-1),
+                                         min_value=0, max_value=X_shap.shape[0]-1, value=0, step=1)
+        with col_fp2:
+            cls_fp_label = st.selectbox("Kelas yang ditampilkan:", list(cls_options.keys()),
+                                        key="fp_cls")
+        cls_fp_idx = cls_options[cls_fp_label]
+
+        # Info prediksi sampel
+        pred_label  = class_names[rf_model.predict(X_shap.iloc[[sample_idx]])[0]]
+        pred_proba  = rf_model.predict_proba(X_shap.iloc[[sample_idx]])[0]
+
+        col_i1, col_i2, col_i3 = st.columns(3)
+        col_i1.metric("Prediksi Model", pred_label.upper())
+        col_i2.metric("Probabilitas Near-Burnout",
+                      f"{pred_proba[class_names.index('near-burnout')]:.3f}" if 'near-burnout' in class_names else "-")
+        col_i3.metric("Expected Value",
+                      f"{explainer.expected_value[cls_fp_idx]:.4f}")
+
+        # Force plot via matplotlib
+        fig_fp, _ = plt.subplots(figsize=(14, 3))
+        shap.force_plot(
+            explainer.expected_value[cls_fp_idx],
+            shap_values[cls_fp_idx][sample_idx],
+            X_shap.iloc[sample_idx],
+            feature_names=feature_names,
+            matplotlib=True,
+            show=False,
+            figsize=(14, 3)
+        )
+        plt.title(f"Force Plot | Sampel ke-{sample_idx} | {cls_fp_label} | Prediksi: {pred_label.upper()}",
+                  fontsize=10, pad=32)
+        plt.tight_layout()
+        st.pyplot(fig_fp, use_container_width=True)
+        plt.close()
+
+        # Tabel nilai fitur + SHAP
+        st.markdown('<div class="section-header">Detail Kontribusi Fitur</div>', unsafe_allow_html=True)
+        df_fp = pd.DataFrame({
+            "Fitur"       : feature_names,
+            "Nilai (scaled)": X_shap.iloc[sample_idx].values.round(4),
+            "SHAP Value"  : shap_values[cls_fp_idx][sample_idx].round(4),
+        }).sort_values("SHAP Value", ascending=False).reset_index(drop=True)
+        df_fp.index += 1
+        st.dataframe(df_fp, use_container_width=True)
+
+        st.markdown("""
+        <div class="shap-insight-box">
+        ⚡ <b>Insight Force Plot:</b> Batang <b>merah</b> mendorong prediksi ke kelas yang dipilih,
+        batang <b>biru</b> menahannya. Lebar batang proporsional dengan besarnya kontribusi.
+        Angka kiri = expected value (base rate), angka kanan = prediksi aktual sampel.
+        Ini adalah fondasi fitur <i>"Mengapa saya Near-Burnout?"</i> di aplikasi CogniCare.
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ────────────────────────────────────────────
+    # TAB 4: CONFUSION MATRIX
+    # ────────────────────────────────────────────
+    with tab4:
+        from sklearn.metrics import (confusion_matrix, ConfusionMatrixDisplay,
+                                     classification_report, accuracy_score)
+
+        st.markdown('<div class="section-header">Confusion Matrix — Random Forest</div>',
+                    unsafe_allow_html=True)
+
+        y_pred_rf = rf_model.predict(X_test)
+        cm        = confusion_matrix(y_test, y_pred_rf)
+
+        fig_cm, ax_cm = plt.subplots(figsize=(7, 5))
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+        disp.plot(ax=ax_cm, cmap="Blues", colorbar=False)
+        ax_cm.set_title("Confusion Matrix — Random Forest", fontsize=12, fontweight="bold", pad=12)
+        ax_cm.tick_params(axis="x", rotation=15)
+        plt.tight_layout()
+        st.pyplot(fig_cm, use_container_width=True)
+        plt.close()
+
+        # Ringkasan
+        acc = accuracy_score(y_test, y_pred_rf)
+        nb_idx_cm = list(class_names).index("near-burnout") if "near-burnout" in class_names else 0
+        fn_nb     = cm[nb_idx_cm].sum() - cm[nb_idx_cm, nb_idx_cm]
+
+        col_cm1, col_cm2, col_cm3 = st.columns(3)
+        col_cm1.metric("Accuracy", f"{acc*100:.2f}%")
+        col_cm2.metric("False Negative Near-Burnout", str(fn_nb))
+        col_cm3.metric("Total Kesalahan", str(cm.sum() - np.diag(cm).sum()))
+
+        st.markdown(f"""
+        <div class="shap-insight-box">
+        📊 <b>Insight:</b> Model mencapai akurasi {acc*100:.2f}% dengan hanya {fn_nb} sampel
+        Near-Burnout yang gagal terdeteksi (False Negative). Angka ini sangat kecil relatif
+        terhadap total data uji, mengkonfirmasi bahwa sistem CogniCare layak digunakan
+        sebagai <i>early warning system</i> kelelahan kognitif.
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="section-header">Classification Report</div>', unsafe_allow_html=True)
+        report = classification_report(y_test, y_pred_rf, target_names=class_names, output_dict=True)
+        df_report = pd.DataFrame(report).T.round(3)
+        st.dataframe(df_report, use_container_width=True)
+
+    # ────────────────────────────────────────────
+    # TAB 5: PERBANDINGAN MODEL
+    # ────────────────────────────────────────────
+    with tab5:
+        from sklearn.metrics import f1_score as f1_sk
+        from sklearn.linear_model import LogisticRegression
+
+        st.markdown('<div class="section-header">Perbandingan Performa Model</div>',
+                    unsafe_allow_html=True)
+
+        st.info("Melatih Logistic Regression sebagai baseline untuk perbandingan...")
+
+        @st.cache_resource
+        def train_logreg(df_raw):
+            from sklearn.linear_model import LogisticRegression
+            from sklearn.preprocessing import LabelEncoder, OrdinalEncoder, StandardScaler
+            from sklearn.model_selection import train_test_split
+
+            df_m   = df_raw.copy()
+            cat_c  = [c for c in df_m.select_dtypes("object").columns if c != "fatigue_level"]
+            if cat_c:
+                df_m[cat_c] = OrdinalEncoder(handle_unknown="use_encoded_value",
+                                              unknown_value=-1).fit_transform(df_m[cat_c])
+            le  = LabelEncoder()
+            y   = le.fit_transform(df_m["fatigue_level"])
+            drop = ["fatigue_level","fatigue_score","fatigue_level_encoded",
+                    "screen_time_bins","Activity_Level"]
+            X   = df_m.drop(columns=[c for c in drop if c in df_m.columns])
+            X_s = pd.DataFrame(StandardScaler().fit_transform(X), columns=X.columns)
+            Xtr, Xte, ytr, yte = train_test_split(X_s, y, test_size=0.2,
+                                                   random_state=42, stratify=y)
+            lr = LogisticRegression(max_iter=1000, random_state=42)
+            lr.fit(Xtr, ytr)
+            return lr, Xte, yte
+
+        lr_model, X_te_lr, y_te_lr = train_logreg(df_raw)
+
+        y_pred_lr = lr_model.predict(X_te_lr)
+        y_pred_rf = rf_model.predict(X_test)
+
+        rows = [
+            {"Model": "Logistic Regression (Baseline)",
+             "Accuracy (%)": round(accuracy_score(y_te_lr, y_pred_lr)*100, 2),
+             "F1-Macro (%)": round(f1_sk(y_te_lr, y_pred_lr, average="macro")*100, 2),
+             "F1-Weighted (%)": round(f1_sk(y_te_lr, y_pred_lr, average="weighted")*100, 2)},
+            {"Model": "Random Forest",
+             "Accuracy (%)": round(accuracy_score(y_test, y_pred_rf)*100, 2),
+             "F1-Macro (%)": round(f1_sk(y_test, y_pred_rf, average="macro")*100, 2),
+             "F1-Weighted (%)": round(f1_sk(y_test, y_pred_rf, average="weighted")*100, 2)},
+        ]
+        df_cmp = pd.DataFrame(rows).sort_values("F1-Weighted (%)", ascending=False).reset_index(drop=True)
+        df_cmp.index += 1
+        st.dataframe(df_cmp, use_container_width=True)
+
+        # Bar chart perbandingan
+        fig_cmp = go.Figure()
+        for metric in ["Accuracy (%)", "F1-Macro (%)", "F1-Weighted (%)"]:
+            fig_cmp.add_trace(go.Bar(name=metric, x=df_cmp["Model"], y=df_cmp[metric]))
+        fig_cmp.update_layout(barmode="group", yaxis=dict(range=[90, 101]),
+                              xaxis_title="", yaxis_title="Score (%)")
+        apply_light_theme(fig_cmp, 360)
+        st.plotly_chart(fig_cmp, use_container_width=True)
+
+        best = df_cmp.iloc[0]
+        st.markdown(f"""
+        <div class="shap-insight-box">
+        🏆 <b>Model Terpilih: {best['Model']}</b> dengan F1-Weighted {best['F1-Weighted (%)']:.2f}%
+        dan Accuracy {best['Accuracy (%)']:.2f}%. Random Forest dipilih sebagai model final
+        bukan hanya karena akurasi tertinggi, tetapi juga karena kompatibilitasnya dengan
+        SHAP TreeExplainer yang memungkinkan setiap prediksi dijelaskan secara transparan
+        kepada pengguna CogniCare.
+        </div>
+        """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════
-# PAGE 4: A/B TESTING
+# PAGE 5: A/B TESTING
 # ═══════════════════════════════════════════════
 elif page == "🧪 A/B Testing":
     from scipy import stats
@@ -731,7 +1061,7 @@ elif page == "🧪 A/B Testing":
 
 
 # ═══════════════════════════════════════════════
-# PAGE 5: DATA DICTIONARY
+# PAGE 6: DATA DICTIONARY
 # ═══════════════════════════════════════════════
 elif page == "📋 Data Dictionary":
     st.markdown('<div class="section-header">Data Dictionary</div>', unsafe_allow_html=True)
