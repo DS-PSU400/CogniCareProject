@@ -616,7 +616,7 @@ elif page == "🤝 Korelasi & RQ":
 # ═══════════════════════════════════════════════
 # PAGE 4: SHAP ANALYSIS  
 # ═══════════════════════════════════════════════
-elif page == "SHAP Analysis":
+elif page == "🧠 SHAP Analysis":
     import matplotlib.pyplot as plt
     import matplotlib
     matplotlib.use("Agg")
