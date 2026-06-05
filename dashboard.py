@@ -12,6 +12,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import warnings
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import shap
 
 warnings.filterwarnings("ignore")
 
@@ -207,7 +211,6 @@ def load_shap_model(df):
     Fungsi ini di-cache sehingga hanya berjalan sekali
     selama sesi Streamlit aktif.
     """
-    import shap
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import LabelEncoder, OrdinalEncoder, StandardScaler
@@ -682,10 +685,6 @@ elif page == "🤝 Korelasi & RQ":
 # PAGE 4: SHAP ANALYSIS  
 # ═══════════════════════════════════════════════
 elif page == "🧠 SHAP Analysis":
-    import matplotlib.pyplot as plt
-    import matplotlib
-    matplotlib.use("Agg")
-
     st.markdown("""
     <div class="shap-insight-box">
     🔬 <b>Tentang SHAP Analysis:</b> Halaman ini menampilkan interpretasi model Random Forest
