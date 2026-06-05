@@ -260,7 +260,7 @@ with st.sidebar:
     st.markdown("---")
     page = st.radio(
         "Navigasi",
-        ["📊 Overview", "🔍 EDA & Distribusi", "🤝 Korelasi & RQ", "🧪 A/B Testing", "📋 Data Dictionary"],
+        ["📊 Overview", "🔍 EDA & Distribusi", "🤝 Korelasi & RQ", "🧠 SHAP Analysis", "🧪 A/B Testing", "📋 Data Dictionary"],
     )
 
 # ──────────────────────────────────────────────
