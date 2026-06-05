@@ -20,154 +20,255 @@ warnings.filterwarnings("ignore")
 # ──────────────────────────────────────────────
 st.set_page_config(
     page_title="CogniCare Dashboard",
-    page_icon="🧠",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 # ──────────────────────────────────────────────
-# CUSTOM CSS
+# THEME DEFINITIONS
 # ──────────────────────────────────────────────
-st.markdown("""
+THEMES = {
+    "Light": {
+        "app_bg":           "#F8F9FA",
+        "sidebar_bg":       "#FFFFFF",
+        "sidebar_border":   "1px solid #DEE2E6",
+        "sidebar_text":     "#6C757D",
+        "text_primary":     "#1A1A2E",
+        "text_secondary":   "#6C757D",
+        "text_muted":       "#ADB5BD",
+        "card_bg":          "#FFFFFF",
+        "card_border":      "1px solid #DEE2E6",
+        "card_hover_border":"#1565C0",
+        "card_hover_shadow":"0 4px 12px rgba(21,101,192,0.12)",
+        "metric_value":     "#1565C0",
+        "metric_delta":     "#2E7D32",
+        "section_color":    "#1565C0",
+        "insight_bg":       "#E8F4FD",
+        "insight_border":   "1px solid #BEE3F8",
+        "insight_left":     "#2E7D32",
+        "insight_text":     "#1A1A2E",
+        "title_gradient":   "linear-gradient(135deg, #1565C0 0%, #00ACC1 100%)",
+        "hero_sub":         "#6C757D",
+        "footer_color":     "#6C757D",
+        "plot_bg":          "#FFFFFF",
+        "paper_bg":         "#FFFFFF",
+        "grid_col":         "#E9ECEF",
+        "text_col":         "#495057",
+        "badge_r_bg":       "#E8F5E9", "badge_r_color": "#2E7D32", "badge_r_border": "#A5D6A7",
+        "badge_s_bg":       "#FFF8E1", "badge_s_color": "#F57F17", "badge_s_border": "#FFE082",
+        "badge_b_bg":       "#FFEBEE", "badge_b_color": "#C62828", "badge_b_border": "#EF9A9A",
+        "hr_color":         "#DEE2E6",
+    },
+    "Dark": {
+        "app_bg":           "#121212",
+        "sidebar_bg":       "#1E1E1E",
+        "sidebar_border":   "1px solid rgba(255,255,255,0.08)",
+        "sidebar_text":     "#9E9E9E",
+        "text_primary":     "#E0E0E0",
+        "text_secondary":   "#9E9E9E",
+        "text_muted":       "#616161",
+        "card_bg":          "rgba(255,255,255,0.05)",
+        "card_border":      "1px solid rgba(255,255,255,0.10)",
+        "card_hover_border":"rgba(144,202,249,0.6)",
+        "card_hover_shadow":"0 4px 12px rgba(0,0,0,0.4)",
+        "metric_value":     "#90CAF9",
+        "metric_delta":     "#66BB6A",
+        "section_color":    "#90CAF9",
+        "insight_bg":       "rgba(144,202,249,0.08)",
+        "insight_border":   "1px solid rgba(144,202,249,0.2)",
+        "insight_left":     "#66BB6A",
+        "insight_text":     "#B0BEC5",
+        "title_gradient":   "linear-gradient(135deg, #90CAF9 0%, #4DD0E1 100%)",
+        "hero_sub":         "#616161",
+        "footer_color":     "#616161",
+        "plot_bg":          "#1E1E1E",
+        "paper_bg":         "#1E1E1E",
+        "grid_col":         "#2C2C2C",
+        "text_col":         "#B0BEC5",
+        "badge_r_bg":       "rgba(46,125,50,0.2)",  "badge_r_color": "#81C784", "badge_r_border": "rgba(46,125,50,0.5)",
+        "badge_s_bg":       "rgba(245,127,23,0.2)", "badge_s_color": "#FFB74D", "badge_s_border": "rgba(245,127,23,0.5)",
+        "badge_b_bg":       "rgba(198,40,40,0.2)",  "badge_b_color": "#EF9A9A", "badge_b_border": "rgba(198,40,40,0.5)",
+        "hr_color":         "rgba(255,255,255,0.10)",
+    },
+    "Navy": {
+        "app_bg":           "#0F1B36",
+        "sidebar_bg":       "#1A2744",
+        "sidebar_border":   "1px solid rgba(255,255,255,0.08)",
+        "sidebar_text":     "#8BA4CC",
+        "text_primary":     "#E2EAF8",
+        "text_secondary":   "#8BA4CC",
+        "text_muted":       "#5C7BA8",
+        "card_bg":          "rgba(255,255,255,0.05)",
+        "card_border":      "1px solid rgba(255,255,255,0.10)",
+        "card_hover_border":"rgba(96,180,255,0.5)",
+        "card_hover_shadow":"0 4px 12px rgba(0,0,0,0.4)",
+        "metric_value":     "#60B4FF",
+        "metric_delta":     "#4CAF50",
+        "section_color":    "#60B4FF",
+        "insight_bg":       "rgba(96,180,255,0.08)",
+        "insight_border":   "1px solid rgba(96,180,255,0.2)",
+        "insight_left":     "#4CAF50",
+        "insight_text":     "#B0C8E8",
+        "title_gradient":   "linear-gradient(135deg, #60B4FF 0%, #4DD9E8 100%)",
+        "hero_sub":         "#5C7BA8",
+        "footer_color":     "#5C7BA8",
+        "plot_bg":          "#FFFFFF",
+        "paper_bg":         "#FFFFFF",
+        "grid_col":         "#E9ECEF",
+        "text_col":         "#495057",
+        "badge_r_bg":       "rgba(46,125,50,0.2)",  "badge_r_color": "#81C784", "badge_r_border": "rgba(46,125,50,0.5)",
+        "badge_s_bg":       "rgba(245,127,23,0.2)", "badge_s_color": "#FFB74D", "badge_s_border": "rgba(245,127,23,0.5)",
+        "badge_b_bg":       "rgba(198,40,40,0.2)",  "badge_b_color": "#EF9A9A", "badge_b_border": "rgba(198,40,40,0.5)",
+        "hr_color":         "rgba(255,255,255,0.10)",
+    },
+}
+
+# ──────────────────────────────────────────────
+# THEME STATE
+# ──────────────────────────────────────────────
+if "theme" not in st.session_state:
+    st.session_state.theme = "Light"
+
+# ──────────────────────────────────────────────
+# APPLY CSS BASED ON THEME
+# ──────────────────────────────────────────────
+def apply_theme(t):
+    st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;700&display=swap');
 
-html, body, [class*="css"] {
+html, body, [class*="css"] {{
     font-family: 'DM Sans', sans-serif;
-}
+}}
 
-/* Background */
-.stApp {
-    background: #F8F9FA;
-    color: #1A1A2E;
-}
+.stApp {{
+    background: {t['app_bg']} !important;
+    color: {t['text_primary']};
+}}
 
-/* Sidebar */
-[data-testid="stSidebar"] {
-    background: #FFFFFF !important;
-    border-right: 1px solid #DEE2E6;
-}
+[data-testid="stSidebar"] {{
+    background: {t['sidebar_bg']} !important;
+    border-right: {t['sidebar_border']};
+}}
+[data-testid="stSidebar"] * {{
+    color: {t['sidebar_text']} !important;
+}}
+[data-testid="stSidebar"] .sidebar-label {{
+    color: {t['text_muted']} !important;
+}}
 
-/* Title */
-.hero-title {
+/* Text overrides */
+p, span, div, label, li {{
+    color: {t['text_primary']};
+}}
+
+.hero-title {{
     font-family: 'Space Mono', monospace;
     font-size: 2.6rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #1565C0 0%, #00ACC1 100%);
+    background: {t['title_gradient']};
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     line-height: 1.2;
     margin-bottom: 0.2rem;
-}
-.hero-sub {
+}}
+.hero-sub {{
     font-size: 1rem;
-    color: #6C757D;
+    color: {t['hero_sub']};
     font-weight: 300;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     margin-bottom: 1.5rem;
-}
+}}
 
-/* Metric cards */
-.metric-card {
-    background: #FFFFFF;
-    border: 1px solid #DEE2E6;
+.metric-card {{
+    background: {t['card_bg']};
+    border: {t['card_border']};
     border-radius: 16px;
     padding: 1.2rem 1.4rem;
     text-align: center;
-    transition: border-color 0.2s;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-.metric-card:hover { border-color: #1565C0; box-shadow: 0 4px 12px rgba(21,101,192,0.12); }
-.metric-label {
+    transition: border-color 0.2s, box-shadow 0.2s;
+}}
+.metric-card:hover {{
+    border-color: {t['card_hover_border']};
+    box-shadow: {t['card_hover_shadow']};
+}}
+.metric-label {{
     font-size: 0.72rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #6C757D;
+    color: {t['text_secondary']} !important;
     margin-bottom: 0.3rem;
-}
-.metric-value {
+}}
+.metric-value {{
     font-family: 'Space Mono', monospace;
     font-size: 2rem;
     font-weight: 700;
-    color: #1565C0;
-}
-.metric-delta {
+    color: {t['metric_value']} !important;
+}}
+.metric-delta {{
     font-size: 0.78rem;
-    color: #2E7D32;
+    color: {t['metric_delta']} !important;
     margin-top: 0.15rem;
-}
+}}
 
-/* Section headers */
-.section-header {
+.section-header {{
     font-family: 'Space Mono', monospace;
     font-size: 1rem;
     letter-spacing: 0.1em;
-    color: #1565C0;
+    color: {t['section_color']} !important;
     text-transform: uppercase;
-    border-left: 3px solid #1565C0;
+    border-left: 3px solid {t['section_color']};
     padding-left: 0.75rem;
     margin: 1.8rem 0 1rem 0;
-}
+}}
 
-/* Insight boxes */
-.insight-box {
-    background: #E8F4FD;
-    border: 1px solid #BEE3F8;
-    border-left: 4px solid #2E7D32;
+.insight-box {{
+    background: {t['insight_bg']};
+    border: {t['insight_border']};
+    border-left: 4px solid {t['insight_left']};
     border-radius: 8px;
     padding: 0.9rem 1.1rem;
     font-size: 0.88rem;
-    color: #1A1A2E;
+    color: {t['insight_text']} !important;
     margin-top: 0.7rem;
-}
+}}
 
-/* Fatigue badge */
-.badge-refreshed { background:#E8F5E9; color:#2E7D32; border:1px solid #A5D6A7; border-radius:20px; padding:3px 14px; font-size:0.78rem; }
-.badge-strained   { background:#FFF8E1; color:#F57F17; border:1px solid #FFE082; border-radius:20px; padding:3px 14px; font-size:0.78rem; }
-.badge-burnout    { background:#FFEBEE; color:#C62828; border:1px solid #EF9A9A; border-radius:20px; padding:3px 14px; font-size:0.78rem; }
+.badge-refreshed {{
+    background: {t['badge_r_bg']};
+    color: {t['badge_r_color']};
+    border: 1px solid {t['badge_r_border']};
+    border-radius: 20px; padding: 3px 14px; font-size: 0.78rem;
+}}
+.badge-strained {{
+    background: {t['badge_s_bg']};
+    color: {t['badge_s_color']};
+    border: 1px solid {t['badge_s_border']};
+    border-radius: 20px; padding: 3px 14px; font-size: 0.78rem;
+}}
+.badge-burnout {{
+    background: {t['badge_b_bg']};
+    color: {t['badge_b_color']};
+    border: 1px solid {t['badge_b_border']};
+    border-radius: 20px; padding: 3px 14px; font-size: 0.78rem;
+}}
 
-/* Plotly chart background */
-.js-plotly-plot .plotly { background: transparent !important; }
-
-/* Sidebar filters */
-.sidebar-label {
+.sidebar-label {{
     font-size: 0.75rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: #6C757D;
+    color: {t['text_muted']} !important;
     margin-bottom: 0.2rem;
-}
+}}
+
+hr {{
+    border-color: {t['hr_color']} !important;
+}}
 </style>
 """, unsafe_allow_html=True)
 
-# ──────────────────────────────────────────────
-# PLOTLY THEME
-# ──────────────────────────────────────────────
-PLOT_BG   = "#FFFFFF"
-PAPER_BG  = "#F8F9FA"
-GRID_COL  = "#E9ECEF"
-TEXT_COL  = "#495057"
-FONT_FAM  = "DM Sans"
-PALETTE   = {"refreshed": "#2E7D32", "strained": "#F57F17", "near-burnout": "#C62828"}
-
-def apply_chart_theme(fig, height=380):
-    fig.update_layout(
-        plot_bgcolor=PLOT_BG,
-        paper_bgcolor=PAPER_BG,
-        font=dict(family=FONT_FAM, color=TEXT_COL, size=12),
-        height=height,
-        margin=dict(l=20, r=20, t=40, b=20),
-        xaxis=dict(gridcolor=GRID_COL, zerolinecolor=GRID_COL),
-        yaxis=dict(gridcolor=GRID_COL, zerolinecolor=GRID_COL),
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)",
-            bordercolor=GRID_COL,
-            font=dict(color=TEXT_COL),
-        ),
-    )
-    return fig
 
 # ──────────────────────────────────────────────
 # LOAD DATA
@@ -176,7 +277,6 @@ def apply_chart_theme(fig, height=380):
 def load_data():
     df = pd.read_csv("cleaned_cognitive_fatigue_dataset.csv")
 
-    # Buat fatigue_level dari fatigue_score jika belum ada
     if "fatigue_level" not in df.columns and "fatigue_score" in df.columns:
         def fatigue_label(score):
             if score <= 2.0:
@@ -187,21 +287,32 @@ def load_data():
                 return "near-burnout"
         df["fatigue_level"] = df["fatigue_score"].apply(fatigue_label)
 
-    # Wellness index: ganti 0 dengan median
     if "wellness_index" in df.columns and (df["wellness_index"] == 0).any():
         df["wellness_index"] = df["wellness_index"].replace(0, np.nan)
         df["wellness_index"].fillna(df["wellness_index"].median(), inplace=True)
 
-    # Hapus duplikat
     df.drop_duplicates(inplace=True)
-
     return df
 
 # ──────────────────────────────────────────────
 # SIDEBAR
 # ──────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## 🧠 CogniCare")
+    st.markdown("## CogniCare")
+    st.markdown("---")
+
+    # ── THEME SWITCHER
+    st.markdown('<div class="sidebar-label">Mode Tampilan</div>', unsafe_allow_html=True)
+    selected_theme = st.radio(
+        label="tema",
+        options=list(THEMES.keys()),
+        index=list(THEMES.keys()).index(st.session_state.theme),
+        label_visibility="collapsed",
+    )
+    if selected_theme != st.session_state.theme:
+        st.session_state.theme = selected_theme
+        st.rerun()
+
     st.markdown("---")
     st.markdown('<div class="sidebar-label">Filter Data</div>', unsafe_allow_html=True)
 
@@ -212,38 +323,21 @@ with st.sidebar:
         data_loaded = False
 
     if data_loaded:
-        # Filter Mood
         if "mood" in df_raw.columns:
             moods_available = sorted(df_raw["mood"].dropna().unique().tolist())
-            selected_moods = st.multiselect(
-                "Mood",
-                options=moods_available,
-                default=moods_available,
-            )
+            selected_moods = st.multiselect("Mood", options=moods_available, default=moods_available)
         else:
             selected_moods = None
 
-        # Filter Fatigue Level
         fl_opts = ["refreshed", "strained", "near-burnout"]
         fl_opts_avail = [f for f in fl_opts if f in df_raw["fatigue_level"].unique()]
-        selected_fl = st.multiselect(
-            "Fatigue Level",
-            options=fl_opts_avail,
-            default=fl_opts_avail,
-        )
+        selected_fl = st.multiselect("Fatigue Level", options=fl_opts_avail, default=fl_opts_avail)
 
-        # Filter Screen Time
         st_min = float(df_raw["screen_time"].min())
         st_max = float(df_raw["screen_time"].max())
-        st_range = st.slider(
-            "Screen Time (jam)",
-            min_value=st_min,
-            max_value=st_max,
-            value=(st_min, st_max),
-            step=0.5,
-        )
+        st_range = st.slider("Screen Time (jam)", min_value=st_min, max_value=st_max,
+                             value=(st_min, st_max), step=0.5)
 
-        # Terapkan filter
         df = df_raw.copy()
         if selected_moods and "mood" in df.columns:
             df = df[df["mood"].isin(selected_moods)]
@@ -254,7 +348,7 @@ with st.sidebar:
         st.markdown("---")
         st.markdown(f"**{len(df):,}** baris tersaring dari **{len(df_raw):,}**")
     else:
-        st.error("File `cleaned_cognitive_fatigue_dataset.csv` tidak ditemukan. Pastikan file ada di direktori yang sama.")
+        st.error("File `cleaned_cognitive_fatigue_dataset.csv` tidak ditemukan.")
         df = None
 
     st.markdown("---")
@@ -264,9 +358,36 @@ with st.sidebar:
     )
 
 # ──────────────────────────────────────────────
+# APPLY THEME CSS
+# ──────────────────────────────────────────────
+T = THEMES[st.session_state.theme]
+apply_theme(T)
+
+PALETTE = {"refreshed": "#2E7D32", "strained": "#F57F17", "near-burnout": "#C62828"}
+
+def apply_chart_theme(fig, height=380):
+    fig.update_layout(
+        plot_bgcolor=T["plot_bg"],
+        paper_bgcolor=T["paper_bg"],
+        font=dict(family="DM Sans", color=T["text_col"], size=12),
+        height=height,
+        margin=dict(l=20, r=20, t=40, b=20),
+        xaxis=dict(gridcolor=T["grid_col"], zerolinecolor=T["grid_col"],
+                   color=T["text_col"]),
+        yaxis=dict(gridcolor=T["grid_col"], zerolinecolor=T["grid_col"],
+                   color=T["text_col"]),
+        legend=dict(
+            bgcolor="rgba(0,0,0,0)",
+            bordercolor=T["grid_col"],
+            font=dict(color=T["text_col"]),
+        ),
+    )
+    return fig
+
+# ──────────────────────────────────────────────
 # MAIN CONTENT
 # ──────────────────────────────────────────────
-st.markdown('<div class="hero-title">🧠 CogniCare</div>', unsafe_allow_html=True)
+st.markdown('<div class="hero-title">CogniCare</div>', unsafe_allow_html=True)
 st.markdown('<div class="hero-sub">Cognitive Fatigue & Digital Habits — Analytic Dashboard</div>', unsafe_allow_html=True)
 
 if not data_loaded or df is None:
@@ -277,7 +398,6 @@ if not data_loaded or df is None:
 # PAGE 1: OVERVIEW
 # ═══════════════════════════════════════════════
 if page == "📊 Overview":
-    # ── KPI Row
     st.markdown('<div class="section-header">Key Performance Indicators</div>', unsafe_allow_html=True)
 
     kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
@@ -298,7 +418,6 @@ if page == "📊 Overview":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ── Fatigue Level Distribution + Mood Distribution
     col_a, col_b = st.columns(2)
 
     with col_a:
@@ -308,13 +427,9 @@ if page == "📊 Overview":
         fl_counts["pct"] = (fl_counts["count"] / fl_counts["count"].sum() * 100).round(1)
 
         fig_pie = px.pie(
-            fl_counts,
-            names="fatigue_level",
-            values="count",
-            color="fatigue_level",
-            color_discrete_map=PALETTE,
-            hole=0.55,
-            custom_data=["pct"],
+            fl_counts, names="fatigue_level", values="count",
+            color="fatigue_level", color_discrete_map=PALETTE,
+            hole=0.55, custom_data=["pct"],
         )
         fig_pie.update_traces(
             texttemplate="%{label}<br><b>%{customdata[0]:.1f}%</b>",
@@ -325,7 +440,7 @@ if page == "📊 Overview":
         fig_pie.add_annotation(
             text=f"<b>{len(df):,}</b><br>Responden",
             x=0.5, y=0.5, font_size=14,
-            font_color="#1A1A2E", showarrow=False,
+            font_color=T["text_col"], showarrow=False,
         )
         st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -335,9 +450,7 @@ if page == "📊 Overview":
             mood_counts = df["mood"].value_counts().reset_index()
             mood_counts.columns = ["mood", "count"]
             fig_mood = px.bar(
-                mood_counts,
-                x="count", y="mood",
-                orientation="h",
+                mood_counts, x="count", y="mood", orientation="h",
                 color="count",
                 color_continuous_scale=["#1565C0", "#00ACC1"],
                 text="count",
@@ -349,12 +462,10 @@ if page == "📊 Overview":
         else:
             st.info("Kolom 'mood' tidak tersedia.")
 
-    # ── Wellness per Fatigue Level (box)
     st.markdown('<div class="section-header">Wellness Index per Fatigue Level</div>', unsafe_allow_html=True)
     fig_box = px.box(
         df, x="fatigue_level", y="wellness_index",
-        color="fatigue_level",
-        color_discrete_map=PALETTE,
+        color="fatigue_level", color_discrete_map=PALETTE,
         points="outliers",
         category_orders={"fatigue_level": ["refreshed", "strained", "near-burnout"]},
     )
@@ -385,11 +496,8 @@ elif page == "🔍 EDA & Distribusi":
     col1, col2 = st.columns(2)
     with col1:
         fig_hist = px.histogram(
-            df, x=selected_num,
-            color="fatigue_level",
-            color_discrete_map=PALETTE,
-            nbins=40, barmode="overlay", opacity=0.75,
-            marginal="box",
+            df, x=selected_num, color="fatigue_level", color_discrete_map=PALETTE,
+            nbins=40, barmode="overlay", opacity=0.75, marginal="box",
             category_orders={"fatigue_level": ["refreshed", "strained", "near-burnout"]},
         )
         fig_hist.update_layout(title=f"Distribusi {selected_num} per Fatigue Level")
@@ -399,8 +507,7 @@ elif page == "🔍 EDA & Distribusi":
     with col2:
         fig_vio = px.violin(
             df, y=selected_num, x="fatigue_level",
-            color="fatigue_level",
-            color_discrete_map=PALETTE,
+            color="fatigue_level", color_discrete_map=PALETTE,
             box=True, points=False,
             category_orders={"fatigue_level": ["refreshed", "strained", "near-burnout"]},
         )
@@ -408,14 +515,12 @@ elif page == "🔍 EDA & Distribusi":
         apply_chart_theme(fig_vio, 380)
         st.plotly_chart(fig_vio, use_container_width=True)
 
-    # Statistik Deskriptif
     st.markdown('<div class="section-header">Statistik Deskriptif</div>', unsafe_allow_html=True)
     stat = df[numeric_cols].describe().T.round(3)
     stat["skewness"] = df[numeric_cols].skew().round(3)
     stat["kurtosis"] = df[numeric_cols].kurtosis().round(3)
     st.dataframe(stat, use_container_width=True)
 
-    # Deteksi Outlier
     st.markdown('<div class="section-header">Deteksi Outlier (Metode IQR)</div>', unsafe_allow_html=True)
     outlier_rows = []
     for col in numeric_cols:
@@ -427,7 +532,6 @@ elif page == "🔍 EDA & Distribusi":
                               "Persen (%)": round(n_out/len(df)*100, 2)})
     st.dataframe(pd.DataFrame(outlier_rows), use_container_width=True)
 
-    # Screen Time Distribution - time bins
     if "screen_time" in df.columns:
         st.markdown('<div class="section-header">Distribusi Screen Time (Bins)</div>', unsafe_allow_html=True)
         df_temp = df.copy()
@@ -481,7 +585,6 @@ elif page == "🤝 Korelasi & RQ":
     apply_chart_theme(fig_heat, 420)
     st.plotly_chart(fig_heat, use_container_width=True)
 
-    # ── RQ 1 – Scatter screen_time vs fatigue_score
     st.markdown('<div class="section-header">RQ1 · Screen Time vs Fatigue Score</div>', unsafe_allow_html=True)
     col1, col2 = st.columns([2,1])
     with col1:
@@ -490,9 +593,7 @@ elif page == "🤝 Korelasi & RQ":
                 df.sample(min(3000, len(df)), random_state=42),
                 x="screen_time", y="fatigue_score",
                 color="fatigue_level", color_discrete_map=PALETTE,
-                opacity=0.5,
-                trendline="ols",
-                trendline_scope="overall",
+                opacity=0.5, trendline="ols", trendline_scope="overall",
                 trendline_color_override="#1565C0",
                 category_orders={"fatigue_level": ["refreshed","strained","near-burnout"]},
             )
@@ -507,7 +608,6 @@ elif page == "🤝 Korelasi & RQ":
         </div>
         """, unsafe_allow_html=True)
 
-    # ── RQ 2 – Sleep Hours vs Wellness Index
     st.markdown('<div class="section-header">RQ2 · Sleep Hours vs Wellness Index</div>', unsafe_allow_html=True)
     if "wellness_index" in df.columns:
         df_sleep = df.copy()
@@ -515,12 +615,7 @@ elif page == "🤝 Korelasi & RQ":
                                         bins=[0,4,6,7,8,9,12],
                                         labels=["<4","4-6","6-7","7-8","8-9",">9"])
         sleep_agg = df_sleep.groupby("sleep_bins", observed=True)["wellness_index"].mean().reset_index()
-
-        fig_sleep = px.line(
-            sleep_agg, x="sleep_bins", y="wellness_index",
-            markers=True,
-            line_shape="spline",
-        )
+        fig_sleep = px.line(sleep_agg, x="sleep_bins", y="wellness_index", markers=True, line_shape="spline")
         fig_sleep.update_traces(line_color="#1565C0", marker_color="#00ACC1", marker_size=10)
         fig_sleep.update_layout(xaxis_title="Durasi Tidur (jam)", yaxis_title="Rata-rata Wellness Index")
         apply_chart_theme(fig_sleep, 340)
@@ -532,7 +627,6 @@ elif page == "🤝 Korelasi & RQ":
         </div>
         """, unsafe_allow_html=True)
 
-    # ── RQ 3 – Stress Level vs Wellness
     st.markdown('<div class="section-header">RQ3 · Stress Level vs Wellness Index</div>', unsafe_allow_html=True)
     col3, col4 = st.columns(2)
     with col3:
@@ -540,48 +634,37 @@ elif page == "🤝 Korelasi & RQ":
             df.sample(min(3000, len(df)), random_state=1),
             x="stress_level", y="wellness_index",
             color="fatigue_level", color_discrete_map=PALETTE,
-            opacity=0.45,
-            trendline="ols",
-            trendline_scope="overall",
+            opacity=0.45, trendline="ols", trendline_scope="overall",
             trendline_color_override="#1565C0",
         )
         apply_chart_theme(fig_str, 360)
         st.plotly_chart(fig_str, use_container_width=True)
 
     with col4:
-        # ── RQ 4 – Mood Comparison
         if "mood" in df.columns:
             profile_cols = [c for c in ["screen_time","sleep_hours","physical_activity"] if c in df.columns]
             profile = df.groupby("mood")[profile_cols].mean().reset_index()
             fig_prof = px.bar(
                 profile.melt(id_vars="mood", value_vars=profile_cols),
-                x="variable", y="value", color="mood",
-                barmode="group",
+                x="variable", y="value", color="mood", barmode="group",
             )
-            fig_prof.update_layout(title="Profil Kebiasaan per Mood",
-                                   xaxis_title="", yaxis_title="Rata-rata Nilai")
+            fig_prof.update_layout(title="Profil Kebiasaan per Mood", xaxis_title="", yaxis_title="Rata-rata Nilai")
             apply_chart_theme(fig_prof, 360)
             st.plotly_chart(fig_prof, use_container_width=True)
 
-    # ── RQ 5 – Physical Activity Mitigasi Screen Time
     st.markdown('<div class="section-header">RQ5 · Mitigasi Aktivitas Fisik terhadap Efek Screen Time</div>', unsafe_allow_html=True)
     if "physical_activity" in df.columns:
         df_rq5 = df.copy()
-        df_rq5["Activity_Level"] = pd.cut(df_rq5["physical_activity"],
-                                           bins=[-1,3,100],
+        df_rq5["Activity_Level"] = pd.cut(df_rq5["physical_activity"], bins=[-1,3,100],
                                            labels=["Low Activity","High Activity"])
         df_rq5["screen_time_bins"] = pd.cut(df_rq5["screen_time"],
                                              bins=[0,2,4,6,8,10,12,24],
                                              labels=["0-2","2-4","4-6","6-8","8-10","10-12","12+"])
         rq5_agg = (df_rq5.groupby(["screen_time_bins","Activity_Level"], observed=True)
                          ["wellness_index"].mean().reset_index())
-
-        fig_rq5 = px.line(
-            rq5_agg, x="screen_time_bins", y="wellness_index",
-            color="Activity_Level",
-            color_discrete_map={"Low Activity":"#f87171","High Activity":"#4ade80"},
-            markers=True, line_shape="spline",
-        )
+        fig_rq5 = px.line(rq5_agg, x="screen_time_bins", y="wellness_index", color="Activity_Level",
+                          color_discrete_map={"Low Activity":"#f87171","High Activity":"#4ade80"},
+                          markers=True, line_shape="spline")
         fig_rq5.update_layout(xaxis_title="Screen Time (jam)", yaxis_title="Rata-rata Wellness Index")
         apply_chart_theme(fig_rq5, 360)
         st.plotly_chart(fig_rq5, use_container_width=True)
@@ -593,23 +676,19 @@ elif page == "🤝 Korelasi & RQ":
         </div>
         """, unsafe_allow_html=True)
 
-    # ── RQ 6 – Feature Importance (Korelasi terhadap Wellness)
     st.markdown('<div class="section-header">RQ6 · Ranking Fitur terhadap Wellness Index</div>', unsafe_allow_html=True)
     if "wellness_index" in df.columns:
         num_cols_rq6 = [c for c in numeric_cols if c != "wellness_index"]
         corr_target = df[num_cols_rq6 + ["wellness_index"]].corr()["wellness_index"].drop("wellness_index").sort_values()
         colors_rq6 = ["#f87171" if v < 0 else "#4ade80" for v in corr_target.values]
-
         fig_rq6 = go.Figure(go.Bar(
-            x=corr_target.values,
-            y=corr_target.index,
-            orientation="h",
+            x=corr_target.values, y=corr_target.index, orientation="h",
             marker_color=colors_rq6,
             text=[f"{v:.3f}" for v in corr_target.values],
             textposition="outside",
         ))
         fig_rq6.update_layout(xaxis_title="Koefisien Korelasi Pearson",
-                               xaxis=dict(range=[-1,1], gridcolor=GRID_COL))
+                               xaxis=dict(range=[-1,1], gridcolor=T["grid_col"]))
         apply_chart_theme(fig_rq6, 340)
         st.plotly_chart(fig_rq6, use_container_width=True)
 
@@ -950,8 +1029,8 @@ elif page == "🧠 SHAP Analysis":
 elif page == "🧪 A/B Testing":
     from scipy import stats
 
-    st.markdown("""
-    <div class="insight-box" style="border-left-color:#1565C0; margin-bottom:1.5rem">
+    st.markdown(f"""
+    <div class="insight-box" style="border-left-color:{T['section_color']}; margin-bottom:1.5rem">
     🔬 <b>Skenario A/B Testing:</b> Apakah terdapat perbedaan signifikan pada <i>Wellness Index</i>
     antara pengguna dengan screen time <b>rendah (≤ 6 jam)</b> vs screen time <b>tinggi (> 6 jam)</b>?
     </div>
@@ -968,15 +1047,12 @@ elif page == "🧪 A/B Testing":
                                   [c for c in ["wellness_index","fatigue_score","stress_level","sleep_hours"]
                                    if c in df.columns])
 
-    # Bagi grup
     group_a = df[df["screen_time"] <= threshold][metric_col].dropna()
     group_b = df[df["screen_time"] >  threshold][metric_col].dropna()
 
-    # T-test independen
     t_stat, p_value = stats.ttest_ind(group_a, group_b, equal_var=False)
     cohen_d = (group_a.mean() - group_b.mean()) / np.sqrt((group_a.std()**2 + group_b.std()**2) / 2)
 
-    # Hasil
     st.markdown('<div class="section-header">Hasil Uji Statistik (Welch\'s t-test)</div>', unsafe_allow_html=True)
 
     res1, res2, res3, res4 = st.columns(4)
@@ -995,7 +1071,6 @@ elif page == "🧪 A/B Testing":
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Kesimpulan
     if p_value < alpha:
         st.success(f"✅ **H₀ DITOLAK** (p = {p_value:.4f} < α = {alpha})  "
                    f"→ Terdapat perbedaan yang **signifikan secara statistik** pada {metric_col} "
@@ -1004,17 +1079,12 @@ elif page == "🧪 A/B Testing":
         st.info(f"ℹ️ **H₀ GAGAL DITOLAK** (p = {p_value:.4f} ≥ α = {alpha})  "
                 f"→ Tidak cukup bukti untuk menyimpulkan perbedaan signifikan. Cohen's d = {cohen_d:.3f}")
 
-    # Visualisasi distribusi kedua grup
     st.markdown('<div class="section-header">Distribusi Kedua Grup</div>', unsafe_allow_html=True)
     fig_ab = go.Figure()
-    fig_ab.add_trace(go.Histogram(
-        x=group_a, name=f"Group A (≤{threshold}h)", opacity=0.7,
-        marker_color="#1565C0", nbinsx=40,
-    ))
-    fig_ab.add_trace(go.Histogram(
-        x=group_b, name=f"Group B (>{threshold}h)", opacity=0.7,
-        marker_color="#f87171", nbinsx=40,
-    ))
+    fig_ab.add_trace(go.Histogram(x=group_a, name=f"Group A (≤{threshold}h)", opacity=0.7,
+                                  marker_color="#1565C0", nbinsx=40))
+    fig_ab.add_trace(go.Histogram(x=group_b, name=f"Group B (>{threshold}h)", opacity=0.7,
+                                  marker_color="#f87171", nbinsx=40))
     fig_ab.add_vline(x=group_a.mean(), line_dash="dash", line_color="#1565C0",
                      annotation_text=f"Mean A={group_a.mean():.2f}", annotation_position="top right")
     fig_ab.add_vline(x=group_b.mean(), line_dash="dash", line_color="#f87171",
@@ -1023,32 +1093,22 @@ elif page == "🧪 A/B Testing":
     apply_chart_theme(fig_ab, 380)
     st.plotly_chart(fig_ab, use_container_width=True)
 
-    # Ringkasan statistik
     st.markdown('<div class="section-header">Ringkasan Statistik Deskriptif</div>', unsafe_allow_html=True)
     summary_ab = pd.DataFrame({
         "Statistik": ["N", "Mean", "Median", "Std Dev", "Min", "Max"],
-        f"Group A (≤{threshold}h)": [
-            len(group_a), group_a.mean().round(3), group_a.median().round(3),
-            group_a.std().round(3), group_a.min().round(3), group_a.max().round(3)
-        ],
-        f"Group B (>{threshold}h)": [
-            len(group_b), group_b.mean().round(3), group_b.median().round(3),
-            group_b.std().round(3), group_b.min().round(3), group_b.max().round(3)
-        ],
+        f"Group A (≤{threshold}h)": [len(group_a), group_a.mean().round(3), group_a.median().round(3),
+                                     group_a.std().round(3), group_a.min().round(3), group_a.max().round(3)],
+        f"Group B (>{threshold}h)": [len(group_b), group_b.mean().round(3), group_b.median().round(3),
+                                     group_b.std().round(3), group_b.min().round(3), group_b.max().round(3)],
     })
     st.dataframe(summary_ab, use_container_width=True)
 
-    # Effect size interpretation
     st.markdown('<div class="section-header">Interpretasi Effect Size (Cohen\'s d)</div>', unsafe_allow_html=True)
     abs_d = abs(cohen_d)
-    if abs_d < 0.2:
-        effect_label = "Negligible (sangat kecil)"
-    elif abs_d < 0.5:
-        effect_label = "Small (kecil)"
-    elif abs_d < 0.8:
-        effect_label = "Medium (sedang)"
-    else:
-        effect_label = "Large (besar)"
+    if abs_d < 0.2:   effect_label = "Negligible (sangat kecil)"
+    elif abs_d < 0.5: effect_label = "Small (kecil)"
+    elif abs_d < 0.8: effect_label = "Medium (sedang)"
+    else:             effect_label = "Large (besar)"
 
     st.markdown(f"""
     <div class="insight-box">
@@ -1097,7 +1157,6 @@ elif page == "📋 Data Dictionary":
     df_dict = pd.DataFrame(data_dict)
     st.dataframe(df_dict, use_container_width=True, height=340)
 
-    # Info Dataset
     st.markdown('<div class="section-header">Info Dataset</div>', unsafe_allow_html=True)
     col_i1, col_i2, col_i3, col_i4 = st.columns(4)
     col_i1.metric("Jumlah Baris (raw)", "98,535")
@@ -1105,7 +1164,6 @@ elif page == "📋 Data Dictionary":
     col_i3.metric("Missing Value", "0")
     col_i4.metric("Duplikat", "920 (dihapus)")
 
-    # Preview data
     st.markdown('<div class="section-header">Preview Data (Tersaring)</div>', unsafe_allow_html=True)
     st.dataframe(df.head(50), use_container_width=True, height=300)
 
@@ -1125,8 +1183,8 @@ elif page == "📋 Data Dictionary":
 # ──────────────────────────────────────────────
 st.markdown("---")
 st.markdown(
-    '<div style="text-align:center; color:#3a4060; font-size:0.78rem; font-family:Space Mono,monospace;">'
-    'CogniCare Dashboard · Cognitive Fatigue & Digital Habits · Built with Streamlit'
-    '</div>',
+    f'<div style="text-align:center; color:{T["footer_color"]}; font-size:0.78rem; font-family:Space Mono,monospace;">'
+    f'CogniCare Dashboard · Cognitive Fatigue & Digital Habits · Built with Streamlit · Tema: {st.session_state.theme}'
+    f'</div>',
     unsafe_allow_html=True
 )
