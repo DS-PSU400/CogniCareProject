@@ -198,6 +198,71 @@ def load_data():
     return df
 
 # ──────────────────────────────────────────────
+# LOAD SHAP (cached agar tidak reload tiap interaksi)
+# ──────────────────────────────────────────────
+@st.cache_resource
+def load_shap_model(df):
+    """
+    Melatih Random Forest dan menghitung SHAP values.
+    Fungsi ini di-cache sehingga hanya berjalan sekali
+    selama sesi Streamlit aktif.
+    """
+    import shap
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import LabelEncoder, OrdinalEncoder, StandardScaler
+
+    # ── Preprocessing ringkas khusus untuk SHAP di dashboard ──
+    df_model = df.copy()
+
+    # Encode kategorik
+    cat_cols = df_model.select_dtypes(include="object").columns.tolist()
+    cat_cols = [c for c in cat_cols if c != "fatigue_level"]
+
+    enc = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1)
+    if cat_cols:
+        df_model[cat_cols] = enc.fit_transform(df_model[cat_cols])
+
+    # Target
+    le = LabelEncoder()
+    y = le.fit_transform(df_model["fatigue_level"])
+    drop_cols = ["fatigue_level", "fatigue_score", "fatigue_level_encoded",
+                 "screen_time_bins", "Activity_Level"]
+    X = df_model.drop(columns=[c for c in drop_cols if c in df_model.columns])
+
+    # Scale
+    scaler = StandardScaler()
+    X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
+
+    # Split
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_scaled, y, test_size=0.2, random_state=42, stratify=y
+    )
+
+    # Train
+    rf = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+    rf.fit(X_train, y_train)
+
+    # SHAP — gunakan subset test agar tidak berat di dashboard
+    n_shap = min(500, X_test.shape[0])
+    X_shap = X_test.iloc[:n_shap]
+
+    explainer   = shap.TreeExplainer(rf)
+    shap_values = explainer.shap_values(X_shap)
+
+    return {
+        "model"         : rf,
+        "explainer"     : explainer,
+        "shap_values"   : shap_values,   # shape: (n_kelas, n_sampel, n_fitur)
+        "X_shap"        : X_shap,
+        "X_test"        : X_test,
+        "y_test"        : y_test,
+        "class_names"   : list(le.classes_),
+        "feature_names" : list(X.columns),
+        "label_encoder" : le,
+    }
+
+# ──────────────────────────────────────────────
 # SIDEBAR
 # ──────────────────────────────────────────────
 with st.sidebar:
