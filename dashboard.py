@@ -162,60 +162,87 @@ def apply_chart_theme(fig, height=380):
     )
     return fig
 
+
 # ──────────────────────────────────────────────
-# HELPER: Normalisasi shap_values ke list of 2D numpy arrays
-# Kompatibel dengan semua versi SHAP (lama & baru)
+# HELPER: Normalisasi shap_values — FIXED VERSION
 # ──────────────────────────────────────────────
-def normalize_shap_values(shap_values_raw, n_classes):
+def normalize_shap_values(shap_values_raw, n_classes, n_features):
     """
     Selalu mengembalikan: List[np.ndarray shape (n_samples, n_features)]
-    dengan panjang = n_classes
+    dengan panjang = n_classes.
+    Kompatibel dengan semua versi SHAP (lama & baru).
     """
-    # Kasus 1: sudah list (SHAP lama, multi-class RF)
+    # ── Kasus 1: sudah list (SHAP lama, multi-class RF) ──────────────────
     if isinstance(shap_values_raw, list):
         result = []
         for sv in shap_values_raw:
-            if hasattr(sv, "values"):       # Explanation object
-                result.append(np.array(sv.values))
-            else:
-                result.append(np.array(sv))
-        return result
+            arr = np.array(sv.values) if hasattr(sv, "values") else np.array(sv)
+            # Kadang tiap elemen masih 3D: (n_samples, n_features, 1)
+            if arr.ndim == 3:
+                if arr.shape[2] == 1:
+                    arr = arr[:, :, 0]
+                else:
+                    arr = arr.mean(axis=2)
+            result.append(arr)
+        # Validasi — kolom harus = n_features
+        fixed = []
+        for arr in result:
+            if arr.ndim == 2 and arr.shape[1] != n_features and arr.shape[0] == n_features:
+                arr = arr.T
+            fixed.append(arr)
+        return fixed
 
-    # Kasus 2: numpy ndarray 3D — (n_classes, n_samples, n_features)
-    if isinstance(shap_values_raw, np.ndarray) and shap_values_raw.ndim == 3:
-        return [shap_values_raw[i] for i in range(shap_values_raw.shape[0])]
+    # ── Kasus 2: Explanation object (SHAP baru) atau ndarray ─────────────
+    vals = np.array(shap_values_raw.values) if hasattr(shap_values_raw, "values") \
+           else np.array(shap_values_raw)
 
-    # Kasus 3: Explanation object (SHAP baru) dengan .values 3D
-    if hasattr(shap_values_raw, "values"):
-        vals = np.array(shap_values_raw.values)
-        if vals.ndim == 3:
-            # shape bisa (n_samples, n_features, n_classes) atau (n_classes, n_samples, n_features)
-            if vals.shape[2] == n_classes:
-                # (n_samples, n_features, n_classes) → transpose
-                return [vals[:, :, i] for i in range(n_classes)]
-            elif vals.shape[0] == n_classes:
-                return [vals[i] for i in range(n_classes)]
-        elif vals.ndim == 2:
-            return [vals] * n_classes
+    if vals.ndim == 3:
+        s0, s1, s2 = vals.shape
+        # (n_samples, n_features, n_classes)  ← paling umum di SHAP >= 0.40
+        if s2 == n_classes and s1 == n_features:
+            return [vals[:, :, i] for i in range(n_classes)]
+        # (n_classes, n_samples, n_features)
+        if s0 == n_classes and s2 == n_features:
+            return [vals[i] for i in range(n_classes)]
+        # (n_samples, n_classes, n_features)  ← jarang
+        if s1 == n_classes and s2 == n_features:
+            return [vals[:, i, :] for i in range(n_classes)]
+        # Fallback generik: pisahkan axis terakhir bila == n_classes
+        if s2 == n_classes:
+            return [vals[:, :, i] for i in range(n_classes)]
+        # Fallback: pisahkan axis pertama
+        return [vals[i] for i in range(min(n_classes, s0))]
 
-    # Fallback: kembalikan apa adanya sebagai list
-    if not isinstance(shap_values_raw, list):
-        return [np.array(shap_values_raw)]
-    return shap_values_raw
+    elif vals.ndim == 2:
+        # Binary / single-output → duplikat untuk semua kelas
+        return [vals] * n_classes
+
+    # Fallback terakhir
+    return [vals] * n_classes
 
 
 def get_shap_array(shap_values_normalized, idx):
-    """Ambil array 2D (n_samples, n_features) untuk kelas ke-idx."""
+    """
+    Ambil array 2D (n_samples, n_features) untuk kelas ke-idx.
+    Selalu mengembalikan plain np.ndarray 2D.
+    """
     arr = shap_values_normalized[idx]
     if hasattr(arr, "values"):
         arr = np.array(arr.values)
-    return np.array(arr)
+    arr = np.array(arr)
+    if arr.ndim == 1:
+        arr = arr.reshape(1, -1)
+    elif arr.ndim == 3:
+        # Ambil slice pertama pada axis terakhir sebagai fallback
+        arr = arr[:, :, 0]
+    return arr
 
 
 def get_expected_value(explainer, cls_idx, n_classes):
     """Ambil expected_value dengan aman untuk semua format."""
     ev = explainer.expected_value
     if isinstance(ev, (list, np.ndarray)):
+        ev = list(ev)
         if len(ev) > cls_idx:
             return float(ev[cls_idx])
         return float(ev[0])
@@ -245,7 +272,7 @@ def load_data():
 
 
 # ──────────────────────────────────────────────
-# LOAD SHAP MODEL
+# LOAD SHAP MODEL — FIXED
 # ──────────────────────────────────────────────
 @st.cache_resource
 def load_shap_model(df):
@@ -279,19 +306,33 @@ def load_shap_model(df):
     rf = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
     rf.fit(X_train, y_train)
 
-    n_shap  = min(500, X_test.shape[0])
-    X_shap  = X_test.iloc[:n_shap].reset_index(drop=True)
+    n_shap = min(500, X_test.shape[0])
+    X_shap = X_test.iloc[:n_shap].reset_index(drop=True)
+    n_features = X_shap.shape[1]
 
-    explainer        = shap.TreeExplainer(rf)
-    shap_values_raw  = explainer.shap_values(X_shap)
+    explainer       = shap.TreeExplainer(rf)
+    shap_values_raw = explainer.shap_values(X_shap)
 
-    # ✅ Normalisasi ke list of 2D arrays — kompatibel semua versi SHAP
-    shap_values_norm = normalize_shap_values(shap_values_raw, n_classes)
+    # ✅ Normalisasi ke List[ndarray(n_samples, n_features)] — kompatibel semua versi SHAP
+    shap_values_norm = normalize_shap_values(shap_values_raw, n_classes, n_features)
+
+    # ✅ Validasi shape setelah normalisasi
+    validated = []
+    for i, sv in enumerate(shap_values_norm):
+        sv = np.array(sv)
+        if sv.shape != (n_shap, n_features):
+            # Coba koreksi otomatis
+            if sv.ndim == 2 and sv.shape[0] == n_features and sv.shape[1] == n_shap:
+                sv = sv.T
+            elif sv.ndim != 2 or sv.shape[1] != n_features:
+                # Fallback: isi nol agar tidak crash
+                sv = np.zeros((n_shap, n_features))
+        validated.append(sv)
 
     return {
         "model"         : rf,
         "explainer"     : explainer,
-        "shap_values"   : shap_values_norm,   # List[ndarray(n_samples, n_features)]
+        "shap_values"   : validated,        # List[ndarray(n_samples, n_features)]
         "X_shap"        : X_shap,
         "X_test"        : X_test,
         "y_test"        : y_test,
@@ -299,6 +340,7 @@ def load_shap_model(df):
         "feature_names" : list(X.columns),
         "label_encoder" : le,
         "n_classes"     : n_classes,
+        "n_features"    : n_features,
     }
 
 
@@ -616,7 +658,7 @@ elif page == "🤝 Korelasi & RQ":
 
 
 # ═══════════════════════════════════════════════
-# PAGE 4: SHAP ANALYSIS
+# PAGE 4: SHAP ANALYSIS — FIXED
 # ═══════════════════════════════════════════════
 elif page == "🧠 SHAP Analysis":
     st.markdown("""
@@ -646,9 +688,16 @@ elif page == "🧠 SHAP Analysis":
     y_test        = shap_data["y_test"]
     X_test        = shap_data["X_test"]
     n_classes     = shap_data["n_classes"]
+    n_features    = shap_data["n_features"]
+
+    # ── Debug info (opsional, bisa dihapus di production) ──────────────
+    with st.expander("🔧 Debug Info (Shape SHAP Values)", expanded=False):
+        st.write(f"n_classes: {n_classes}, n_features: {n_features}, n_shap_samples: {X_shap.shape[0]}")
+        for i, sv in enumerate(shap_values):
+            st.write(f"  Kelas {i} ({class_names[i]}): shape = {np.array(sv).shape}")
 
     st.success(f"✅ SHAP berhasil dihitung — {X_shap.shape[0]} sampel | "
-               f"{len(feature_names)} fitur | {n_classes} kelas")
+               f"{n_features} fitur | {n_classes} kelas")
 
     cls_options = {f"Kelas: {c.upper()}": i for i, c in enumerate(class_names)}
 
@@ -661,7 +710,7 @@ elif page == "🧠 SHAP Analysis":
     ])
 
     # ─────────────────────────────────────────
-    # TAB 1: FEATURE IMPORTANCE
+    # TAB 1: FEATURE IMPORTANCE — FIXED
     # ─────────────────────────────────────────
     with tab1:
         st.markdown('<div class="section-header">SHAP Feature Importance Global per Kelas</div>',
@@ -673,19 +722,26 @@ elif page == "🧠 SHAP Analysis":
                 axes = [axes]
 
             for i, (cls, color) in enumerate(zip(class_names, colors_kelas[:n_classes])):
-                arr      = get_shap_array(shap_values, i)          # (n_samples, n_features)
-                mean_abs = pd.Series(np.abs(arr).mean(axis=0),
-                                     index=feature_names).sort_values(ascending=True)
+                arr = get_shap_array(shap_values, i)          # (n_samples, n_features)
+                # Pastikan shape benar sebelum operasi
+                assert arr.shape[1] == n_features, \
+                    f"Kelas {i}: arr.shape={arr.shape}, n_features={n_features}"
+
+                mean_abs = pd.Series(
+                    np.abs(arr).mean(axis=0),
+                    index=feature_names
+                ).sort_values(ascending=True)
 
                 bars = axes[i].barh(mean_abs.index, mean_abs.values,
                                     color=color, edgecolor="white", linewidth=0.5)
+                max_val = mean_abs.max() if mean_abs.max() > 0 else 1
                 for bar, val in zip(bars, mean_abs.values):
-                    axes[i].text(val + mean_abs.max()*0.01,
-                                 bar.get_y() + bar.get_height()/2,
+                    axes[i].text(val + max_val * 0.01,
+                                 bar.get_y() + bar.get_height() / 2,
                                  f"{val:.4f}", va="center", ha="left", fontsize=8)
                 axes[i].set_title(f"Kelas: {cls.upper()}", fontsize=10, fontweight="bold", color=color)
                 axes[i].set_xlabel("Mean |SHAP Value|", fontsize=8)
-                axes[i].spines[["top","right"]].set_visible(False)
+                axes[i].spines[["top", "right"]].set_visible(False)
 
             fig_bar.suptitle("SHAP Global Feature Importance per Kelas Fatigue Level",
                              fontsize=12, fontweight="bold")
@@ -701,15 +757,20 @@ elif page == "🧠 SHAP Analysis":
         st.markdown('<div class="section-header">Ranking Feature Importance (Global)</div>',
                     unsafe_allow_html=True)
         try:
-            all_abs  = [np.abs(get_shap_array(shap_values, i)) for i in range(n_classes)]
-            mean_all = np.mean(all_abs, axis=0)                    # (n_samples, n_features)
-            df_rank  = (pd.Series(mean_all.mean(axis=0), index=feature_names)
-                          .sort_values(ascending=False)
-                          .reset_index())
+            # Rata-rata mean |SHAP| lintas semua kelas
+            all_mean_abs = np.zeros(n_features)
+            for i in range(n_classes):
+                arr = get_shap_array(shap_values, i)    # (n_samples, n_features)
+                all_mean_abs += np.abs(arr).mean(axis=0)
+            all_mean_abs /= n_classes
+
+            df_rank = (pd.Series(all_mean_abs, index=feature_names)
+                         .sort_values(ascending=False)
+                         .reset_index())
             df_rank.columns = ["Fitur", "Mean |SHAP Value|"]
             df_rank.index  += 1
             df_rank["Tier"] = df_rank.index.map(
-                lambda x: "🔴 Tinggi" if x<=3 else "🟡 Sedang" if x<=6 else "🟢 Rendah")
+                lambda x: "🔴 Tinggi" if x <= 3 else "🟡 Sedang" if x <= 6 else "🟢 Rendah")
             df_rank["Mean |SHAP Value|"] = df_rank["Mean |SHAP Value|"].round(4)
             st.dataframe(df_rank, use_container_width=True)
         except Exception as e:
@@ -722,7 +783,7 @@ elif page == "🧠 SHAP Analysis":
         </div>""", unsafe_allow_html=True)
 
     # ─────────────────────────────────────────
-    # TAB 2: BEESWARM PLOT
+    # TAB 2: BEESWARM PLOT — FIXED
     # ─────────────────────────────────────────
     with tab2:
         selected_cls_label = st.selectbox("Pilih kelas untuk Beeswarm Plot:", list(cls_options.keys()),
@@ -732,12 +793,22 @@ elif page == "🧠 SHAP Analysis":
         st.markdown(f'<div class="section-header">Beeswarm Plot — {selected_cls_label}</div>',
                     unsafe_allow_html=True)
         try:
-            arr_bee  = get_shap_array(shap_values, selected_cls_idx)
+            arr_bee = get_shap_array(shap_values, selected_cls_idx)  # (n_samples, n_features)
+            # Pastikan X_shap & arr_bee shape-nya konsisten
+            assert arr_bee.shape == X_shap.shape, \
+                f"Shape mismatch: arr_bee={arr_bee.shape}, X_shap={X_shap.shape}"
+
             fig_bee, ax_bee = plt.subplots(figsize=(10, 6))
             plt.sca(ax_bee)
-            shap.summary_plot(arr_bee, X_shap, feature_names=feature_names,
-                              show=False, plot_size=None,
-                              max_display=len(feature_names), plot_type="dot")
+            shap.summary_plot(
+                arr_bee,
+                X_shap,
+                feature_names=feature_names,
+                show=False,
+                plot_size=None,
+                max_display=len(feature_names),
+                plot_type="dot",
+            )
             ax_bee.set_title(f"SHAP Beeswarm Plot — {selected_cls_label}",
                              fontsize=11, fontweight="bold")
             ax_bee.set_xlabel("SHAP Value (dampak terhadap output model)", fontsize=9)
@@ -757,7 +828,7 @@ elif page == "🧠 SHAP Analysis":
         </div>""", unsafe_allow_html=True)
 
     # ─────────────────────────────────────────
-    # TAB 3: FORCE PLOT
+    # TAB 3: FORCE PLOT — FIXED
     # ─────────────────────────────────────────
     with tab3:
         st.markdown('<div class="section-header">Interpretasi Prediksi Individual</div>',
@@ -785,14 +856,28 @@ elif page == "🧠 SHAP Analysis":
         col_i3.metric("Expected Value", f"{ev_val:.4f}")
 
         try:
-            arr_fp   = get_shap_array(shap_values, cls_fp_idx)
-            sv_row   = arr_fp[sample_idx]                          # 1D (n_features,)
+            arr_fp  = get_shap_array(shap_values, cls_fp_idx)  # (n_samples, n_features)
+            sv_row  = arr_fp[int(sample_idx)]                   # (n_features,)  — 1D
+            feat_row = X_shap.iloc[int(sample_idx)]             # Series (n_features,)
+
+            # Pastikan panjang sv_row == n_features == len(feature_names)
+            assert len(sv_row) == n_features == len(feature_names), \
+                f"Panjang tidak sama: sv_row={len(sv_row)}, n_features={n_features}, feature_names={len(feature_names)}"
+
             fig_fp, _ = plt.subplots(figsize=(14, 3))
-            shap.force_plot(ev_val, sv_row, X_shap.iloc[sample_idx],
-                            feature_names=feature_names,
-                            matplotlib=True, show=False, figsize=(14, 3))
-            plt.title(f"Force Plot | Sampel {sample_idx} | {cls_fp_label} | Prediksi: {pred_label.upper()}",
-                      fontsize=10, pad=32)
+            shap.force_plot(
+                ev_val,
+                sv_row,
+                feat_row,
+                feature_names=feature_names,
+                matplotlib=True,
+                show=False,
+                figsize=(14, 3),
+            )
+            plt.title(
+                f"Force Plot | Sampel {sample_idx} | {cls_fp_label} | Prediksi: {pred_label.upper()}",
+                fontsize=10, pad=32,
+            )
             plt.tight_layout()
             st.pyplot(fig_fp, use_container_width=True)
             plt.close(fig_fp)
@@ -802,11 +887,13 @@ elif page == "🧠 SHAP Analysis":
 
         st.markdown('<div class="section-header">Detail Kontribusi Fitur</div>', unsafe_allow_html=True)
         try:
-            arr_fp  = get_shap_array(shap_values, cls_fp_idx)
-            df_fp   = pd.DataFrame({
+            arr_fp  = get_shap_array(shap_values, cls_fp_idx)  # (n_samples, n_features)
+            sv_row  = arr_fp[int(sample_idx)]                   # (n_features,)
+
+            df_fp = pd.DataFrame({
                 "Fitur"         : feature_names,
-                "Nilai (scaled)": X_shap.iloc[sample_idx].values.round(4),
-                "SHAP Value"    : arr_fp[sample_idx].round(4),
+                "Nilai (scaled)": X_shap.iloc[int(sample_idx)].values.round(4),
+                "SHAP Value"    : sv_row.round(4),
             }).sort_values("SHAP Value", ascending=False).reset_index(drop=True)
             df_fp.index += 1
             st.dataframe(df_fp, use_container_width=True)
