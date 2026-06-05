@@ -15,6 +15,7 @@ import warnings
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import shap  # ✅ FIX 1: import shap di scope global
 
 warnings.filterwarnings("ignore")
 
@@ -126,6 +127,18 @@ html, body, [class*="css"] {
     margin-top: 0.7rem;
 }
 
+/* SHAP insight box */
+.shap-insight-box {
+    background: #F3E5F5;
+    border: 1px solid #CE93D8;
+    border-left: 4px solid #7B1FA2;
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.88rem;
+    color: #1A1A2E;
+    margin-top: 0.7rem;
+}
+
 /* Fatigue badge */
 .badge-refreshed { background:#E8F5E9; color:#2E7D32; border:1px solid #A5D6A7; border-radius:20px; padding:3px 14px; font-size:0.78rem; }
 .badge-strained   { background:#FFF8E1; color:#F57F17; border:1px solid #FFE082; border-radius:20px; padding:3px 14px; font-size:0.78rem; }
@@ -213,6 +226,7 @@ def load_shap_model(df):
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import LabelEncoder, OrdinalEncoder, StandardScaler
+    # ✅ FIX 2: hapus 'import shap' di dalam fungsi ini karena sudah global
 
     # ── Preprocessing ringkas khusus untuk SHAP di dashboard ──
     df_model = df.copy()
@@ -249,13 +263,13 @@ def load_shap_model(df):
     n_shap = min(500, X_test.shape[0])
     X_shap = X_test.iloc[:n_shap]
 
-    explainer   = shap.TreeExplainer(rf)
+    explainer   = shap.TreeExplainer(rf)      # ✅ shap tersedia dari scope global
     shap_values = explainer.shap_values(X_shap)
 
     return {
         "model"         : rf,
         "explainer"     : explainer,
-        "shap_values"   : shap_values,   # shape: (n_kelas, n_sampel, n_fitur)
+        "shap_values"   : shap_values,
         "X_shap"        : X_shap,
         "X_test"        : X_test,
         "y_test"        : y_test,
@@ -681,7 +695,7 @@ elif page == "🤝 Korelasi & RQ":
         st.plotly_chart(fig_rq6, use_container_width=True)
 
 # ═══════════════════════════════════════════════
-# PAGE 4: SHAP ANALYSIS  
+# PAGE 4: SHAP ANALYSIS
 # ═══════════════════════════════════════════════
 elif page == "🧠 SHAP Analysis":
     st.markdown("""
@@ -706,7 +720,7 @@ elif page == "🧠 SHAP Analysis":
     if not shap_ok:
         st.stop()
 
-    import shap
+    # ✅ FIX 3: HAPUS 'import shap' di sini — sudah tersedia dari scope global
     shap_values   = shap_data["shap_values"]
     X_shap        = shap_data["X_shap"]
     class_names   = shap_data["class_names"]
@@ -797,7 +811,7 @@ elif page == "🧠 SHAP Analysis":
 
         fig_bee, ax_bee = plt.subplots(figsize=(10, 6))
         plt.sca(ax_bee)
-        shap.summary_plot(
+        shap.summary_plot(      # ✅ shap tersedia dari scope global
             shap_values[selected_cls_idx],
             X_shap,
             feature_names=feature_names,
@@ -853,7 +867,7 @@ elif page == "🧠 SHAP Analysis":
 
         # Force plot via matplotlib
         fig_fp, _ = plt.subplots(figsize=(14, 3))
-        shap.force_plot(
+        shap.force_plot(        # ✅ shap tersedia dari scope global
             explainer.expected_value[cls_fp_idx],
             shap_values[cls_fp_idx][sample_idx],
             X_shap.iloc[sample_idx],
@@ -938,7 +952,7 @@ elif page == "🧠 SHAP Analysis":
     # ────────────────────────────────────────────
     with tab5:
         from sklearn.metrics import f1_score as f1_sk
-        from sklearn.linear_model import LogisticRegression
+        from sklearn.metrics import accuracy_score
 
         st.markdown('<div class="section-header">Perbandingan Performa Model</div>',
                     unsafe_allow_html=True)
@@ -993,7 +1007,7 @@ elif page == "🧠 SHAP Analysis":
             fig_cmp.add_trace(go.Bar(name=metric, x=df_cmp["Model"], y=df_cmp[metric]))
         fig_cmp.update_layout(barmode="group", yaxis=dict(range=[90, 101]),
                               xaxis_title="", yaxis_title="Score (%)")
-        apply_light_theme(fig_cmp, 360)
+        apply_chart_theme(fig_cmp, 360)   # ✅ FIX 4: ganti apply_light_theme → apply_chart_theme
         st.plotly_chart(fig_cmp, use_container_width=True)
 
         best = df_cmp.iloc[0]
